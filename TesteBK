@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Temperatura via MQTT (Debug)</title>
+  <script src="https://unpkg.com/paho-mqtt@1.1.0/paho-mqtt-min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      padding: 2rem;
+    }
+    .container {
+      background-color: #fff;
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      max-width: 600px;
+      margin: auto;
+    }
+    .temp {
+      font-size: 2rem;
+      color: #ff5722;
+      margin-bottom: 1rem;
+    }
+    .log {
+      font-family: monospace;
+      font-size: 0.9rem;
+      background-color: #f0f0f0;
+      padding: 1rem;
+      border-radius: 8px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Temperatura Atual via MQTT (WSS - Porta 8884)</h2>
+    <div class="temp" id="temp">-- °C</div>
+    <div class="log" id="log">Log de debug:</div>
+  </div>
+
+  <script>
+    const log = (msg) => {
+      console.log(msg);
+      const logDiv = document.getElementById("log");
+      logDiv.innerText += "\n" + msg;
+      logDiv.scrollTop = logDiv.scrollHeight;
+    };
+
+    const clientID = "webclient-" + Math.random().toString(16).substr(2, 8);
+    const client = new Paho.MQTT.Client("broker.hivemq.com", 8884, clientID);
+
+    client.onConnectionLost = function (responseObject) {
+      if (responseObject.errorCode !== 0) {
+        log("🔌 Conexão perdida: " + responseObject.errorMessage);
+      }
+    };
+
+    client.onMessageArrived = function (message) {
+      log("📩 Mensagem recebida: " + message.payloadString);
+      document.getElementById("temp").innerText = message.payloadString + " °C";
+    };
+
+    log("🚀 Conectando com client ID: " + clientID);
+
+    client.connect({
+      onSuccess: function () {
+        log("✅ Conectado com sucesso ao broker HiveMQ via WSS");
+        client.subscribe("JBC/w");
+        log("📡 Inscrito no tópico: JBC/w");
+      },
+      onFailure: function (err) {
+        log("❌ Erro ao conectar: " + err.errorMessage);
+      },
+      useSSL: true
+    });
+  </script>
+</body>
+</html>
